@@ -206,7 +206,7 @@ ClassDefinition::ClassDefinition(ObjectHolder cls): cls_(cls) {
 ObjectHolder ClassDefinition::Execute(Closure& closure, Context& /*context*/) {
     string name = cls_.TryAs<runtime::Class>()->GetName();
     closure[name] = cls_;
-    return runtime::ObjectHolder::Share(*closure.at(name));
+    return closure.at(name);
 }
 
 FieldAssignment::FieldAssignment(VariableValue object, std::string field_name, std::unique_ptr<Statement> rv): object_(object) {
@@ -222,7 +222,7 @@ ObjectHolder FieldAssignment::Execute(Closure& closure, Context& context) {
     }
     obj_ptr->Fields()[field_name_] = rv_->Execute(closure, context);
     if (obj_ptr->Fields().at(field_name_)) {
-        return ObjectHolder::Share(*obj_ptr->Fields().at(field_name_));
+        return obj_ptr->Fields().at(field_name_);
     } else {
         return runtime::ObjectHolder::None();
     }
@@ -298,7 +298,7 @@ ObjectHolder NewInstance::Execute(Closure& closure, Context& context) {
     if (obj.TryAs<runtime::ClassInstance>()->HasMethod(INIT_METHOD, args_list.size())) {
         std::vector<ObjectHolder> actual_args;
         for (auto &item:args_list) {
-            actual_args.push_back(ObjectHolder::Share(*item->Execute(closure, context)));
+            actual_args.push_back(item->Execute(closure, context));
         }
         obj.TryAs<runtime::ClassInstance>()->Call(INIT_METHOD, actual_args, context);
     }
