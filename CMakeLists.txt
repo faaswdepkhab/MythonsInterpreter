@@ -23,3 +23,9 @@ set(PROG_INCLUDE
     
 add_executable(MythonsInterpreter ${PROG_SRC} ${PROG_INCLUDE})
 
+if (MSVC)
+    add_compile_options(/W3 /WX)
+else ()
+    add_compile_options(-Werror -Wall)
+endif ()
+

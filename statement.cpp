@@ -242,7 +242,7 @@ ObjectHolder Compound::Execute(Closure& closure, Context& context) {
 }
 
 ObjectHolder Return::Execute(Closure& closure, Context& context) {
-    throw ReturnException(statement_->Execute(closure, context));
+    throw statement_->Execute(closure, context);
 }
 
 ClassDefinition::ClassDefinition(ObjectHolder cls): cls_(cls) {
@@ -357,11 +357,12 @@ MethodBody::MethodBody(std::unique_ptr<Statement>&& body) {
 ObjectHolder MethodBody::Execute(Closure& closure, Context& context) {
     try {
         body_->Execute(closure, context);
+        return ObjectHolder::None();
+    }  catch (runtime::ObjectHolder &result) {
+        return result;
+    }  catch (...) {
+        throw std::runtime_error("Unknown exception");
     }
-    catch (ReturnException& e) {
-        return e.Value;
-    }
-    return ObjectHolder::None();
 }
 
 }  // namespace ast

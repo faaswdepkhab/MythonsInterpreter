@@ -7,12 +7,6 @@
 #include <exception>
 
 namespace ast {
-    
-struct ReturnException: public std::exception
-{
-    ReturnException(runtime::ObjectHolder value): Value(value) {}
-	runtime::ObjectHolder Value;
-};    
 
 using Statement = runtime::Executable;
 
