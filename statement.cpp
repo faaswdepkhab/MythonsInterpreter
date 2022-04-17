@@ -19,12 +19,8 @@ const string INIT_METHOD = "__init__"s;
 }  // namespace
 
 ObjectHolder Assignment::Execute(Closure& closure, Context& context) {
-    closure[var_name] = var_value->Execute(closure, context);;
-    if (closure[var_name]) {
-        return ObjectHolder::Share(*closure[var_name]);
-    } else {
-        return ObjectHolder::None();
-    }
+    closure[var_name] = var_value->Execute(closure, context);
+    return closure.at(var_name);
 }
 
 Assignment::Assignment(std::string var, std::unique_ptr<Statement> rv) {
@@ -32,72 +28,31 @@ Assignment::Assignment(std::string var, std::unique_ptr<Statement> rv) {
     var_value = std::move(rv);
 }
 
-VariableValue::VariableValue(const std::string& var_name) {
-    simpleVariable = true;
-    name = var_name;
-    list_ids = {};
+VariableValue::VariableValue(const std::string& var_name)
+    : name{var_name} {
 }
 
 VariableValue::VariableValue(std::vector<std::string> dotted_ids) {
-    list_ids = std::move(dotted_ids);
-    if (list_ids.size() == 1) {
-        simpleVariable = true;
-        name = list_ids[0];
-    } else {
-        name = "";
-        simpleVariable = false;
+    if (auto size = dotted_ids.size(); size > 0) {
+        name = std::move(dotted_ids.at(0));
+        list_ids.resize(size - 1);
+        std::move(std::next(dotted_ids.begin()), dotted_ids.end(), list_ids.begin());
     }
 }
 
-runtime::ObjectHolder VariableValue::GetComplexValue(Closure& closure) {
-    if ((!list_ids.empty()) && (closure.count(list_ids[0]) > 0)) {
-        auto result = closure[list_ids[0]].TryAs<runtime::ClassInstance>();
-        if (!result) {
-            throw std::runtime_error("Is not object");
-        }
-        
-        // проход по точкам
-        int count = list_ids.size();
-        for (int i = 1; i < count - 1; i++) {
-            auto fields = result->Fields();
-            if (fields.count(list_ids[i]) == 0) {
-                throw std::runtime_error("Unknown name field");
-            }
-            result = fields[list_ids[i]].TryAs<runtime::ClassInstance>();
-            if (!result) {
-                throw std::runtime_error("Is not object");
-            }
-        }
-        
-        // вычисление итогового значения
-        auto fields = result->Fields();
-        if (fields.count(list_ids[count - 1]) == 0) {
-            throw std::runtime_error("Unknown name field");
-        } else {
-            if (fields.at(list_ids[count - 1])) {
-                return runtime::ObjectHolder::Share(*fields.at(list_ids[count - 1]));
+ObjectHolder VariableValue::Execute(Closure &closure, Context &context) {
+    if (closure.count(name)) {
+        auto result = closure.at(name);
+        if (list_ids.size() > 0) {
+            if (auto obj = result.TryAs<runtime::ClassInstance>()) {
+                return VariableValue(list_ids).Execute(obj->Fields(), context);
             } else {
-                return runtime::ObjectHolder::None();
+                throw std::runtime_error("Variable " + name+ " is not class"s);
             }
         }
+        return result;
     } else {
-        throw std::runtime_error("Unknown name variable");
-    }
-}
-
-ObjectHolder VariableValue::Execute(Closure& closure, Context& /*context*/) {
-    if (simpleVariable) {
-        if (closure.count(name) > 0 ) {
-            if (closure.at(name)) {
-                return runtime::ObjectHolder::Share(*closure.at(name));
-            } else {
-                return runtime::ObjectHolder::None();
-            }
-        } else {
-            throw std::runtime_error("Unknown name variable");
-        }
-    } else {
-        return GetComplexValue(closure);
+        throw std::runtime_error("Variable "s + name + " not found"s);
     }
 }
 

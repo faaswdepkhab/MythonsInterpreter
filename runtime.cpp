@@ -70,18 +70,11 @@ bool IsTrue(const ObjectHolder& object) {
 }
 
 void ClassInstance::Print(std::ostream& os, Context& context) {
-    if (HasMethod("__str__", 0)) {
-        std::vector<ObjectHolder> args;
-        auto t = Call("__str__", args, context);
-        if (t) {
-            t->Print(os, context);
-        } else {
-            os << "None";
-        }
+    if (HasMethod("__str__"s, 0U)) {
+        Call("__str__"s, {}, context)->Print(os, context);
     } else {
-        os << &*this;
+        os << this;
     }
-    
 }
 
 bool ClassInstance::HasMethod(const std::string& method, size_t argument_count) const {
@@ -114,16 +107,11 @@ ObjectHolder ClassInstance::Call(const std::string& method,
         // копирование в таблицу параметров
         int count = actual_args.size();
         for (int i = 0; i < count; i++) {
-            params[method_ptr->formal_params[i]] = actual_args[i];
+            params[method_ptr->formal_params[i]] = actual_args.at(i);
         }
         params["self"] = ObjectHolder::Share(*this);
 
-        auto t = method_ptr->body->Execute(params, context);
-        if (t) {
-            return t;
-        } else {
-            return ObjectHolder::None();
-        }
+        return method_ptr->body->Execute(params, context);
     } else {
         throw runtime_error("Method not implemented");
     }

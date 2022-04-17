@@ -47,8 +47,6 @@ private:
     bool simpleVariable;
     std::string name;
     std::vector<std::string> list_ids;
-    // чтение значения из "точек"
-    runtime::ObjectHolder GetComplexValue(runtime::Closure& closure);
 };
 
 // Присваивает переменной, имя которой задано в параметре var, значение выражения rv
